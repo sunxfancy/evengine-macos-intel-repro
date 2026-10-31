@@ -40,7 +40,10 @@ for name in ('warm', 'early', 'final'):
         output = subprocess.check_output(['swift', 'pixels.swift', str(target)], text=True)
         result['frames'][name] = json.loads(output)
 text = (evidence / 'engine.log').read_text(encoding='utf-8', errors='replace')
-result['apple_paravirt_observed'] = 'AppleParavirtDevice' in text
+displays = (evidence / 'displays.txt').read_text(encoding='utf-8', errors='replace')
+result['apple_paravirt_observed'] = (
+    'AppleParavirtDevice' in text or 'Apple Paravirtualized Graphics Device' in displays
+)
 final = result['frames'].get('final', {})
 result['map_visible'] = final.get('map_difference', 0) > 0.05
 result['solid_visible'] = final.get('solid_red', 0) > 0.8
