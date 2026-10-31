@@ -1,0 +1,38 @@
+name: Intel macOS SDK rendering reproduction
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record environment
+        run: |
+          mkdir -p evidence
+          uname -m | tee evidence/architecture.txt
+          system_profiler SPDisplaysDataType > evidence/displays.txt
+          cat evidence/displays.txt
+          test "$(uname -m)" = x86_64
+      - name: Download immutable upstream SDK artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --hostname github.com repos/EVEngine/EVEngine/actions/artifacts/13046085461/zip > sdk-artifact.zip
+          echo 'b88a5fff024ac8f3be1a5ec29c1c49dee74e75efd4286e1d516df44e51a81e42  sdk-artifact.zip' | shasum -a 256 -c -
+          unzip -q sdk-artifact.zip -d download
+          mkdir sdk
+          unzip -q "$(find download -name 'eve-sdk-*.zip' -print -quit)" -d sdk
+          find sdk -name eve -type f -exec chmod +x {} \;
+      - name: Run bounded engine rendering and inspect engine-owned screenshots
+        timeout-minutes: 2
+        run: python3 probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intel-render-evidence
+          path: evidence/
+          if-no-files-found: error
