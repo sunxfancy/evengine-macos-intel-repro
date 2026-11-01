@@ -53,6 +53,35 @@ jobs:
         if: always()
         timeout-minutes: 2
         run: python3 probe.py discrete-after-validation
+      - name: Build standalone Vulkan draw probe against unmodified public headers
+        if: always()
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/KhronosGroup/Vulkan-Headers/v1.3.296/include/vulkan/vulkan_core.h -o vulkan_core.h
+          mkdir -p headers/vulkan headers/vk_video
+          mv vulkan_core.h headers/vulkan/
+          curl -fsSL https://raw.githubusercontent.com/KhronosGroup/Vulkan-Headers/v1.3.296/include/vulkan/vulkan.h -o headers/vulkan/vulkan.h
+          curl -fsSL https://raw.githubusercontent.com/KhronosGroup/Vulkan-Headers/v1.3.296/include/vulkan/vk_platform.h -o headers/vulkan/vk_platform.h
+          for file in $(grep '#include "vk_video/' headers/vulkan/vulkan_core.h | cut -d '"' -f 2); do
+            curl -fsSL "https://raw.githubusercontent.com/KhronosGroup/Vulkan-Headers/v1.3.296/include/$file" -o "headers/$file"
+          done
+          curl -fsSL https://raw.githubusercontent.com/KhronosGroup/Vulkan-Headers/v1.3.296/include/vk_video/vulkan_video_codecs_common.h -o headers/vk_video/vulkan_video_codecs_common.h
+          for file in color_vert_spv.inc color_frag_spv.inc; do
+            gh api --hostname github.com "repos/EVEngine/EVEngine/contents/src/modules/graphics/shaders/$file?ref=75c4202a841741db5b7f7dcf3695532d54bc7de3" --jq .content | base64 -D > "$file"
+          done
+          clang++ -std=c++20 -I headers vulkan-probe.cpp -o vulkan-probe
+      - name: Standalone Vulkan without Metal validation
+        if: always()
+        timeout-minutes: 1
+        run: |
+          MTL_DEBUG_LAYER=0 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 ./vulkan-probe "$(find sdk -name libMoltenVK.dylib -print -quit)" > evidence/vulkan-off.log 2>&1
+      - name: Standalone Vulkan with Metal validation
+        if: always()
+        timeout-minutes: 1
+        run: |
+          MTL_DEBUG_LAYER=1 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 ./vulkan-probe "$(find sdk -name libMoltenVK.dylib -print -quit)" > evidence/vulkan-on.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
