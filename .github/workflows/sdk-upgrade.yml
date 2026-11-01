@@ -1,0 +1,51 @@
+name: Verify official Vulkan SDK 1.4.363.0 on Intel
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/sdk-upgrade.yml']
+permissions:
+  contents: read
+jobs:
+  sdk:
+    runs-on: macos-15-intel
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install exact official SDK with production action
+        uses: jakoch/install-vulkan-sdk-action@d17de7e2f5e50efb5d2123efed18497d3c58c533
+        with:
+          vulkan_version: '1.4.363.0'
+          destination: ${{ runner.temp }}/VulkanSDK
+          cache: false
+          github_token: ${{ github.token }}
+      - name: Download existing engine SDK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence download sdk
+          system_profiler SPDisplaysDataType > evidence/displays.txt
+          gh api --hostname github.com repos/EVEngine/EVEngine/actions/artifacts/13046085461/zip > sdk-artifact.zip
+          echo 'b88a5fff024ac8f3be1a5ec29c1c49dee74e75efd4286e1d516df44e51a81e42  sdk-artifact.zip' | shasum -a 256 -c -
+          unzip -q sdk-artifact.zip -d download
+          unzip -q "$(find download -name 'eve-sdk-*.zip' -print -quit)" -d sdk
+          find sdk -name eve -type f -exec chmod +x {} \;
+      - name: Run existing engine with official new MoltenVK and validation disabled
+        timeout-minutes: 2
+        run: |
+          export NEW_MOLTENVK="$(find "$RUNNER_TEMP/VulkanSDK" -name libMoltenVK.dylib -print -quit)"
+          test -n "$NEW_MOLTENVK"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path('new-sdk-icd.json').resolve()
+          p.write_text(json.dumps({'file_format_version':'1.0.0', 'ICD':{'library_path':os.environ['NEW_MOLTENVK'], 'api_version':'1.2.0'}}), encoding='utf-8')
+          PY
+          export VK_ICD_FILENAMES="$PWD/new-sdk-icd.json"
+          export VK_DRIVER_FILES="$VK_ICD_FILENAMES"
+          python3 probe.py sdk-1.4.363
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-sdk-363-evidence
+          path: evidence/
+          if-no-files-found: warn
