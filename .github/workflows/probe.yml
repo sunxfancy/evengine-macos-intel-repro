@@ -82,6 +82,15 @@ jobs:
         timeout-minutes: 1
         run: |
           MTL_DEBUG_LAYER=1 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 ./vulkan-probe "$(find sdk -name libMoltenVK.dylib -print -quit)" > evidence/vulkan-on.log 2>&1
+      - name: Compare unmodified official MoltenVK 1.4.2
+        if: always()
+        timeout-minutes: 2
+        run: |
+          curl -fLsS https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.2/MoltenVK-macos.tar -o moltenvk-1.4.2.tar
+          shasum -a 256 moltenvk-1.4.2.tar > evidence/moltenvk-1.4.2.sha256
+          mkdir moltenvk-1.4.2
+          tar -xf moltenvk-1.4.2.tar -C moltenvk-1.4.2
+          MTL_DEBUG_LAYER=0 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 ./vulkan-probe "$(find moltenvk-1.4.2 -name libMoltenVK.dylib -print -quit)" > evidence/vulkan-1.4.2-off.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
