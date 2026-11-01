@@ -91,6 +91,16 @@ jobs:
           mkdir moltenvk-1.4.2
           tar -xf moltenvk-1.4.2.tar -C moltenvk-1.4.2
           MTL_DEBUG_LAYER=0 MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 ./vulkan-probe "$(find moltenvk-1.4.2 -name libMoltenVK.dylib -print -quit)" > evidence/vulkan-1.4.2-off.log 2>&1
+      - name: Compare native Metal draw overloads without validation
+        if: always()
+        timeout-minutes: 1
+        run: |
+          clang++ -std=c++20 -fobjc-arc native-draw-paths.mm -framework Foundation -framework Metal -o draw-paths
+          MTL_DEBUG_LAYER=0 ./draw-paths > evidence/native-draw-paths-off.log 2>&1
+      - name: Compare native Metal draw overloads with validation
+        if: always()
+        timeout-minutes: 1
+        run: MTL_DEBUG_LAYER=1 ./draw-paths > evidence/native-draw-paths-on.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
