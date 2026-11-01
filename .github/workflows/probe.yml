@@ -49,6 +49,10 @@ jobs:
         if: always()
         timeout-minutes: 2
         run: python3 probe.py metal-validation
+      - name: Repeat discrete mode after validation to control for cache warmup
+        if: always()
+        timeout-minutes: 2
+        run: python3 probe.py discrete-after-validation
       - uses: actions/upload-artifact@v4
         if: always()
         with:
