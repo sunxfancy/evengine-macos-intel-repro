@@ -49,7 +49,7 @@ int main() {
         if (!target) return 6;
         bool passed = true;
         for (NSString* entry in @[ @"generated", @"uploaded", @"attributes0", @"attributes30" ]) {
-          for (int mode = 0; mode < 3; ++mode) {
+          for (int mode = 0; mode < 4; ++mode) {
             MTLRenderPipelineDescriptor* pipelineDesc    = [[MTLRenderPipelineDescriptor alloc] init];
             pipelineDesc.vertexFunction                  = [library newFunctionWithName:entry];
             pipelineDesc.fragmentFunction                = [library newFunctionWithName:@"red"];
@@ -83,10 +83,15 @@ int main() {
             [render setRenderPipelineState:pipeline];
             [render setViewport:MTLViewport{0, 0, double(size), double(size), 0, 1}];
             [render setCullMode:MTLCullModeNone];
-            [render setVertexBuffer:vertices offset:0 atIndex:bufferIndex];
+            if (mode == 3) {
+                [render setVertexBuffer:vertices offset:0 attributeStride:MTLAttributeStrideStatic atIndex:bufferIndex];
+            } else {
+                [render setVertexBuffer:vertices offset:0 atIndex:bufferIndex];
+            }
             if (mode == 0) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
             if (mode == 1) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1];
             if (mode == 2) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1 baseInstance:0];
+            if (mode == 3) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1 baseInstance:0];
             [render endEncoding];
             id<MTLBlitCommandEncoder> copy = [commands blitCommandEncoder];
             [copy copyFromTexture:target
