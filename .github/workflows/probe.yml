@@ -29,7 +29,22 @@ jobs:
           find sdk -name eve -type f -exec chmod +x {} \;
       - name: Run bounded engine rendering and inspect engine-owned screenshots
         timeout-minutes: 2
-        run: python3 probe.py
+        run: |
+          mkdir -p evidence/discrete evidence/argument
+          python3 probe.py discrete
+      - name: Compare Metal argument buffer mode
+        if: always()
+        timeout-minutes: 2
+        run: python3 probe.py argument
+      - name: Compare native Metal generated and uploaded vertices
+        if: always()
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --hostname github.com repos/EVEngine/EVEngine/contents/.github/scripts/probe-metal-render.mm?ref=75c4202a841741db5b7f7dcf3695532d54bc7de3 --jq .content | base64 -D > metal.mm
+          clang++ -std=c++20 -fobjc-arc metal.mm -framework Foundation -framework Metal -o metal-probe
+          ./metal-probe 2>&1 | tee evidence/native-metal.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

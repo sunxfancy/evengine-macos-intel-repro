@@ -11,15 +11,20 @@ eve_init = function() {
 };
 eve_update = function(dt) {
     frames++;
-    if(frames==2) print("MAP_CAPTURE_WARM="+gfx.saveFramePng("/tmp/eve-map-warm.png")+"\n");
-    if(frames==3) print("MAP_CAPTURE_EARLY="+gfx.saveFramePng("/tmp/eve-map-early.png")+"\n");
+    if(frames==5) print("CLEAR_RED="+gfx.saveFramePng("/tmp/eve-map-clear-red.png")+"\n");
+    if(frames==10) print("CLEAR_GREEN="+gfx.saveFramePng("/tmp/eve-map-clear-green.png")+"\n");
+    if(frames==15) print("MAP_CAPTURE_EARLY="+gfx.saveFramePng("/tmp/eve-map-early.png")+"\n");
     if(frames==20) {
         print("MAP_CAPTURE_FINAL="+gfx.saveFramePng("/tmp/eve-map-final.png")+"\n");
         win.close();
     }
 };
 eve_render = function() {
+    if(frames<6) gfx.setBackgroundColor(0.8,0.0,0.0,1.0);
+    else if(frames<11) gfx.setBackgroundColor(0.0,0.8,0.0,1.0);
+    else gfx.setBackgroundColor(0.08,0.09,0.12,1.0);
     gfx.clear();
-    mapModule.render(gfx);
+    if(frames>10)mapModule.render(gfx);
     gfx.drawSolidRect(360.0,40.0,100.0,100.0,1.0,0.0,0.0,1.0);
+    gfx.drawSolidRect(360.0,200.0,100.0,100.0,0.0,0.0,1.0,1.0);
 };
