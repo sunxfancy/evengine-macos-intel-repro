@@ -45,6 +45,10 @@ jobs:
           gh api --hostname github.com repos/EVEngine/EVEngine/contents/.github/scripts/probe-metal-render.mm?ref=75c4202a841741db5b7f7dcf3695532d54bc7de3 --jq .content | base64 -D > metal.mm
           clang++ -std=c++20 -fobjc-arc metal.mm -framework Foundation -framework Metal -o metal-probe
           ./metal-probe 2>&1 | tee evidence/native-metal.log
+      - name: Inspect underlying Metal validation diagnostics
+        if: always()
+        timeout-minutes: 2
+        run: python3 probe.py metal-validation
       - uses: actions/upload-artifact@v4
         if: always()
         with:

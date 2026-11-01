@@ -20,6 +20,7 @@ with (evidence / 'engine.log').open('w', encoding='utf-8') as log:
         stderr=subprocess.STDOUT,
         env={**os.environ, 'EVENGINE_VULKAN_VALIDATION': '1',
              'MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS': '1' if variant == 'argument' else '0',
+             'MTL_DEBUG_LAYER': '1' if variant == 'metal-validation' else '0',
              'MVK_CONFIG_LOG_LEVEL': '4'},
     )
     timed_out = False

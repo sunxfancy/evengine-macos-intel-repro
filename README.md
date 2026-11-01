@@ -9,3 +9,9 @@ The game draws a map and a solid red rectangle. The engine saves its own early/f
 Run the workflow manually from Actions, or locally on Intel macOS after unpacking the SDK beneath `sdk/`: `python3 probe.py`.
 
 No private machine information or credentials are included. The workflow has read-only repository permissions.
+
+## Diagnostic comparisons
+
+The script changes clear colors before restoring the reference background, and scans the entire image for red/blue geometry (rather than relying only on a single pixel). Separate processes compare discrete bindings, argument buffers, and Metal API validation. Native Metal controls generate vertex positions in the shader and upload positions through a buffer, using the public upstream probe at the pinned source commit.
+
+Run 41264612582 observed changing clear colors but no red/blue geometry in discrete mode. Both native Metal controls passed with center RGBA 255,0,0,255. Argument-buffer mode exited with SIGABRT before rendering. These findings narrow the investigation to the engine/Vulkan/MoltenVK draw path; they do not identify the faulty component or prove every readback path is correct.
