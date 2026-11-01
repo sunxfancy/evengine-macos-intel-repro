@@ -19,6 +19,9 @@ int main() {
                                   "vertex float4 uploaded(uint i [[vertex_id]], const device float4* p [[buffer(0)]]) {\n"
                                   "  return p[i];\n"
                                   "}\n"
+                                  "struct Input { float4 position [[attribute(0)]]; };\n"
+                                  "vertex float4 attributes0(Input i [[stage_in]]) { return i.position; }\n"
+                                  "vertex float4 attributes30(Input i [[stage_in]]) { return i.position; }\n"
                                   "fragment float4 red() { return float4(1,0,0,1); }\n";
         NSError*       error   = nil;
         id<MTLLibrary> library = [device newLibraryWithSource:source options:nil error:&error];
@@ -45,11 +48,22 @@ int main() {
         id<MTLTexture> target   = [device newTextureWithDescriptor:textureDesc];
         if (!target) return 6;
         bool passed = true;
-        for (NSString* entry in @[ @"generated", @"uploaded" ]) {
+        for (NSString* entry in @[ @"generated", @"uploaded", @"attributes0", @"attributes30" ]) {
           for (int mode = 0; mode < 3; ++mode) {
             MTLRenderPipelineDescriptor* pipelineDesc    = [[MTLRenderPipelineDescriptor alloc] init];
             pipelineDesc.vertexFunction                  = [library newFunctionWithName:entry];
             pipelineDesc.fragmentFunction                = [library newFunctionWithName:@"red"];
+            const NSUInteger bufferIndex = [entry isEqualToString:@"attributes30"] ? 30 : 0;
+            if ([entry hasPrefix:@"attributes"]) {
+                MTLVertexDescriptor* descriptor = [[MTLVertexDescriptor alloc] init];
+                descriptor.attributes[0].format = MTLVertexFormatFloat4;
+                descriptor.attributes[0].offset = 0;
+                descriptor.attributes[0].bufferIndex = bufferIndex;
+                descriptor.layouts[bufferIndex].stride = 4 * sizeof(float);
+                descriptor.layouts[bufferIndex].stepFunction = MTLVertexStepFunctionPerVertex;
+                descriptor.layouts[bufferIndex].stepRate = 1;
+                pipelineDesc.vertexDescriptor = descriptor;
+            }
             pipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
             id<MTLRenderPipelineState> pipeline          = [device newRenderPipelineStateWithDescriptor:pipelineDesc
                                                                                          error:&error];
@@ -69,7 +83,7 @@ int main() {
             [render setRenderPipelineState:pipeline];
             [render setViewport:MTLViewport{0, 0, double(size), double(size), 0, 1}];
             [render setCullMode:MTLCullModeNone];
-            [render setVertexBuffer:vertices offset:0 atIndex:0];
+            [render setVertexBuffer:vertices offset:0 atIndex:bufferIndex];
             if (mode == 0) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
             if (mode == 1) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1];
             if (mode == 2) [render drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3 instanceCount:1 baseInstance:0];
